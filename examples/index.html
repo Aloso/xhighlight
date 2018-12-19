@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Syntax test</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+        body {
+            font-family: 'Noto Sans', Roboto, "Droid Sans", "Segoe UI", sans-serif;
+        }
+        #left {
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+            padding: 20px 10px 20px 20px;
+            position: absolute;
+            width: 50%;
+            height: 100%;
+        }
+        
+        #left-label {
+            display: block;
+            font-weight: bold;
+            font-size: 1.4rem;
+            margin: 0 0 10px;
+        }
+        #input {
+            display: block;
+            margin: 0;
+            width: 100%;
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+            background-color: white;
+            color: black;
+            border: 1px solid #aaa;
+            resize: vertical;
+            padding: 7px 10px;
+            min-height: 50%;
+            font-size: 1rem;
+            font-family: "Fira Code", "Noto Mono", "Droid Sans Mono", Consolas, Hack, monospace;
+        }
+        
+        #right {
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            right: 0;
+            padding: 20px 20px 20px 10px;
+            overflow: auto;
+        }
+        
+        #code-container {
+            margin: 0;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            padding: 7px 10px;
+            font-size: 1rem;
+            font-family: "Fira Code", "Noto Mono", "Droid Sans Mono", Consolas, Hack, monospace;
+            overflow-x: auto;
+        }
+        
+        .kwd {color: #0044d4;  font-weight: bold;}
+        .opr {color: #2b3d72;}
+        .fun {color: #370076;}
+        .pun {color: #5c5c5c;}
+        .lif {color: #006800;}
+        .typ {color: #54277f;}
+        .num {color: #6d0022;}
+        .boo {color: #680043;}
+        .mac {color: #394bb6;}
+        .ann {color: #5e883a;}
+        .str {color: #9b4e00;}
+        .esc {color: #6e3700;  font-weight: bold;}
+        .chr {color: #9b4e00;}
+        .com {color: gray;     font-style: italic;}
+        .doc {color: #00722c;  font-style: italic;}
+        .raw {color: red;}
+        
+        .sec {color: #007200;  font-weight: bold;}
+        .nam {color: #3d7a17;}
+        .lit {color: #00607f;}
+
+        .reg {color: #41742b;}
+        .tpl {color: #742e29;}
+        .tpi {color: #806767;  font-style: italic;}
+        
+    </style>
+</head>
+<body>
+    <div id="left">
+        <label id="left-label" for="input">Enter Rust code:</label>
+        <textarea id="input"></textarea>
+    </div>
+    <div id="right">
+        <pre id="code-container"><code id="code"></code></pre>
+    </div>
+
+    <script>
+        "use strict";
+        
+        var input = document.querySelector("#input");
+        var output = document.querySelector("#code");
+
+        var requested = false;
+        var up_to_date = true;
+        
+        input.oninput = function () {
+            up_to_date = false;
+            updateCode();
+        };
+        
+        var sent = 0;
+        
+        function updateCode() {
+            if (!up_to_date && !requested) {
+                requested = true;
+                up_to_date = true;
+                sent = performance.now();
+                microAjax({
+                    url: "http://localhost:8000/ajax?data=" + encodeURIComponent(input.value),
+                    method: "GET",
+                    success: function (s) {
+                        output.innerHTML = s;
+                        requested = false;
+                        
+                        if (!up_to_date) {
+                            updateCode();
+                        }
+                    },
+                    error: function (s) {
+                        requested = false;
+                        console.log(s);
+                    }
+                });
+            }
+        }
+        
+        
+        
+        
+        
+        function microAjax(options) {
+            if (!options.method) options.method = "GET";
+            function noop() {}
+            if (!options.success) options.success = noop;
+            if (!options.warning) options.warning = noop;
+            if (!options.error) options.error = noop;
+            var request = new XMLHttpRequest();
+            request.open(options.method, options.url, true);
+            request.send(options.data);
+            request.onload = function() {
+                if (request.readyState === 4 && request.status === 200) options.success(request.responseText);
+                else options.warning();
+            };
+            request.onerror = options.error;
+        }
+    </script>
+</body>
+</html>

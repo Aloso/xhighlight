@@ -1,0 +1,11 @@
+[package]
+name = "xhighlight"
+version = "0.1.0"
+authors = ["Aloso <4567.angel@gmail.com>"]
+edition = "2018"
+
+
+[dependencies]
+regex = "1.1.0"
+rocket = "0.4.0"
+lazy_static = "1.2.0"
