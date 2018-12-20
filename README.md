@@ -67,13 +67,13 @@ pub fn parse_rust_to_html(string: &str) -> String {
 
 ## Example: Highlight your own language
 
-To highlight keywords, strings, numbers and comments in a language, first create an enum that implements the `Highlight` trait:
+To highlight keywords, strings, numbers and comments in a language, first we create an enum with all possible tokens that implements the `Highlight` trait:
 
 ```rust
 use xhighlight::parse::Highlight;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-enum MyLanguage {
+enum MyLang {
     Text,
     Keyword,
     String,
@@ -81,12 +81,16 @@ enum MyLanguage {
     Comment,
 }
 
-impl Highlight for MyLanguage {}
+impl Highlight for MyLang {}
 ```
 
-This defines the supported kinds of tokens. The default token is `Text`, which will receive no styling.
+The tokens also work as _states_. We'll define the initial state as `Text` in a moment.
 
-Now, define your regular expressions, and define your pattern sets (explained in the comments):
+Before that, let's define our patterns and our pattern sets. You most certainly want to use regular expressions for patterns. A _pattern set_ is an ordered list of patterns, which are all used for the same state.
+
+While parsing, every time a token is requested, we go forward in the string until a pattern matches the current string index. If more than one pattern matches, we use the first one, so make sure they're not in the wrong order!
+
+We usually put pattern sets in `lazy_static!` blocks, because so the regular expressions aren't compiled more than once.
 
 ```rust
 #[macro_use]
@@ -99,24 +103,21 @@ const KEYWORD: &str = r"\b(for|while|do|switch|case|default|continue|break|if|el
 const STRING: &str = r#""(\\.|[^"])*""#;
 
 // Numbers: Floats (e.g. 3.14159e-5) and integers in decimal, binary or hex
-const NUMBERS: &str = r"(\d+|\d*\.\d+)([eE][+-]?\d+)?|0x[0-9a-fA-F]+|0b[01]+";
+const NUMBER: &str = r"(\d+|\d*\.\d+)([eE][+-]?\d+)?|0x[0-9a-fA-F]+|0b[01]+";
 
 // Allow // line comments and /* block comments */
-const COMMENTS: &str = r"//.*|/\*.*?\*/";
+const COMMENT: &str = r"//.*|/\*.*?\*/";
 
 lazy_static! {
-    // Use lazy_static to compile the regexes only once
-    
-    // This is a pattern set. Note that the order is important:
-    // When two patterns match at the same index, it will choose the first pattern
-    static ref REGEXES: Vec<(RegexPat<MyLanguage>, MyLanguage)> = {
+    static ref REGEXES: Vec<(RegexPat<MyLang>, MyLang)> = {
         vec![
-            // This means that, if the string matches the KEYWORD pattern,
+            // The 1st tuple means that, if the string matches the KEYWORD pattern,
             // then a token of type Keyword is created, and the state is changed to Text.
-            (RegexPat::regex(KEYWORD, Keyword), Text),
-            (RegexPat::regex(COMMENT, Comment), Text),
-            (RegexPat::regex(STRING,  String),  Text),
-            (RegexPat::regex(NUMBER,  Number),  Text),
+            // Note that the state transition is only important for the *next* token.
+            (RegexPat::regex(KEYWORD, MyLang::Keyword), MyLang::Text),
+            (RegexPat::regex(COMMENT, MyLang::Comment), MyLang::Text),
+            (RegexPat::regex(STRING,  MyLang::String),  MyLang::Text),
+            (RegexPat::regex(NUMBER,  MyLang::Number),  MyLang::Text),
         ]
     };
 }
@@ -124,17 +125,17 @@ lazy_static! {
 
 Actually, this can parse a subset of the Java syntax!
 
-Now, to offer the same API as the other languages, implement `make_builder()`:
+Now, to offer the same API as the other languages, we should implement `make_parser()`:
 
 ```rust
-impl MyLanguage {
-    pub fn make_parser<'a>() -> Parser<'a, MyLanguage, RegexPat<MyLanguage>> {
+impl MyLang {
+    pub fn make_parser<'a>() -> Parser<'a, MyLang, RegexPat<MyLang>> {
         let mut parser = Parser::new(Text);
         
-        // This means that the REGEXES pattern set is used while the state is Text
+        // This means that the REGEXES pattern set is used while the state is Text.
         // The state becomes important when context-sensitive patterns are used
         // (e.g. patterns that only apply within strings, or only in annotations)
-        parser.add_matcher(Text, &REGEXES);
+        parser.add_matcher(MyLang::Text, &REGEXES);
         
         // You can add more pattern sets for different states,
         // but in this example, it's not necessary

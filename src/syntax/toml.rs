@@ -8,8 +8,8 @@ use crate::{
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Toml {
     Text,
-    Arr0, Arr1, Arr2, Arr3, Arr4, Arr5,
-
+    Arr0,
+    Arr1,
     Comment,
     Section,
     Equals,

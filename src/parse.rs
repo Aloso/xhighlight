@@ -177,6 +177,8 @@ impl<'a, H: Highlight, P: Pattern<H>> Matcher<'a, H, P> {
                 }
             }
 
+            //TODO maybe use .chars()
+
             // Figure out if the next char is 1, 2, 3 or 4 bytes long
             // This is safe since str_slice can't be empty
             let next_byte = unsafe { str_slice.as_bytes().get_unchecked(index) };
@@ -325,9 +327,7 @@ pub unsafe fn next_char(string: &[u8], index: usize) -> char {
 /// Checks whether a string has a word boundary at a specified index.
 /// This is unsafe because it doesn't test whether the index is within the string bounds
 #[inline]
-pub unsafe fn is_word_boundary(string: &str, index: usize) -> bool {
-    //if index == 0 {
-    //    string[0]
-    //}
+pub unsafe fn is_word_boundary(_string: &str, _index: usize) -> bool {
+    //TODO
     unimplemented!()
 }
